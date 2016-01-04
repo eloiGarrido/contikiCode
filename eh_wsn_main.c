@@ -8,20 +8,42 @@
 
 #include <stdio.h>
 
+#define CHANNEL 135
+/*---------------------------------------------------------------------------*/
 PROCESS(my_first_app_process,"My_First_App");
 AUTOSTART_PROCESSES(&my_first_app_process);
-
+/*---------------------------------------------------------------------------*/
+/* Broadcast message receive */
+static void
+broadcast_recv(struct broadcast_conn *c, const linkaddr_t *from)
+{
+  printf("broadcast message received from %d.%d: '%s'\n",
+         from->u8[0], from->u8[1], (char *)packetbuf_dataptr());
+}
+static const struct broadcast_callbacks broadcast_call = {broadcast_recv};
+static struct broadcast_conn broadcast;
+/*---------------------------------------------------------------------------*/
 PROCESS_THREAD(my_first_app_process,ev,data)
 { 
     /* Declare variables required */
-    static int i=652;         
+	static struct etimer et;
 
-    /* Begin Process */
-    PROCESS_BEGIN();          
+  	PROCESS_EXITHANDLER(broadcast_close(&broadcast);)
 
-    /* Set of C statement(s) */
-    printf("EE-%d is an awesome course at USC\n",i);             
-    
+  	PROCESS_BEGIN();
+
+	broadcast_open(&broadcast, 129, &broadcast_call);
+
+	while(1)
+	{
+		/* Delay 2-4 seconds */
+    	etimer_set(&et, CLOCK_SECOND * 4 + random_rand() % (CLOCK_SECOND * 4));
+    	PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
+    	packetbuf_copyfrom("Hello",6);
+    	broadcast_send(&broadcast);
+    	printf("Braodcast message sent\n");
+	}
+
     /* Process End */
     PROCESS_END();            
 }
