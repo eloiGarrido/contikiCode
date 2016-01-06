@@ -7,6 +7,7 @@
 #include "dev/leds.h"
 #include "../apps/energytrace/energytrace.h"
 #include <stdio.h>
+#include "metric.h"
 
 // #include "tudLib/node_state.h"
 
@@ -36,39 +37,47 @@ static struct broadcast_conn broadcast;
 PROCESS_THREAD(my_first_app_process,ev,data)
 { 
     /* Declare variables required */
-	static struct etimer pt_broadcast;
-  static struct etimer pt_message;
+    static struct etimer pt_broadcast;
+    static struct etimer pt_message;
+    static struct etimer energy_info;
 
-  PROCESS_EXITHANDLER(broadcast_close(&broadcast); energytrace_stop();)
+    PROCESS_EXITHANDLER(broadcast_close(&broadcast); energytrace_stop();)
 
-  PROCESS_BEGIN();
+    PROCESS_BEGIN();
 
-	broadcast_open(&broadcast, 129, &broadcast_call);
-  energytrace_start(); // Energy trace initializer
-  /* Delay 2-4 seconds */
-  etimer_set(&pt_broadcast, CLOCK_SECOND * 4 + random_rand() % (CLOCK_SECOND * 4));
-  etimer_set(&pt_message, CLOCK_SECOND * 10 + random_rand() % (CLOCK_SECOND * 10));
-	while(1){
-		
-    	PROCESS_WAIT_EVENT();
-      if (ev == PROCESS_EVENT_TIMER){
-        if(etimer_expired(&pt_broadcast)){
-          // PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
-          if (node_state == NODE_ACTIVE){
-            packetbuf_copyfrom("Hello",6);
-            broadcast_send(&broadcast);
-            printf("Braodcast message sent\n");
-            etimer_reset(&pt_broadcast);
-           // etimer_set(&pt_broadcast, CLOCK_SECOND * 4 + random_rand() % (CLOCK_SECOND * 4));
-          }
+    broadcast_open(&broadcast, 129, &broadcast_call);
+    energytrace_start(); // Energy trace initializer
+    /* Delay 2-4 seconds */
+    etimer_set(&pt_broadcast, CLOCK_SECOND * 4 + random_rand() % (CLOCK_SECOND * 4));
+    etimer_set(&pt_message, CLOCK_SECOND * 10 + random_rand() % (CLOCK_SECOND * 10));
+    etimer_set(&energy_info, CLOCK_SECOND * 6);
+    while(1){
+        PROCESS_WAIT_EVENT();
+        if (ev == PROCESS_EVENT_TIMER){
+            if(etimer_expired(&pt_broadcast)){
+              // PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
+                if (node_state == NODE_ACTIVE){
+                    packetbuf_copyfrom("Hello",6);
+                    broadcast_send(&broadcast);
+                    printf("Braodcast message sent\n");
+                    etimer_reset(&pt_broadcast);
+               // etimer_set(&pt_broadcast, CLOCK_SECOND * 4 + random_rand() % (CLOCK_SECOND * 4));
+                }     
+            }
+            else if(etimer_expired(&pt_message)){
+            printf("---------------------Periodic message---------------------\n");
+            etimer_reset(&pt_message);
+            }
+            else if (etimer_expired(&energy_info)){
+                compute_node_state();
+                compute_node_duty_cycle();
+                compute_harvesting_rate();
+                etimer_reset(&energy_info);
+                printf("node_state: %d, node_duty_cycle %u, harvesting_rate: %u\n",get_node_state(), get_duty_cycle(),get_harvesting_rate() );
+            }
+
         }
-        // PROCESS_EVENT_TIMER
-        else if(etimer_expired(&pt_message)){
-          printf("---------------------Periodic message---------------------\n");
-          etimer_reset(&pt_message);
-        }
-      }
-	}
+    }
     /* Process End */
     PROCESS_END();            
 }
