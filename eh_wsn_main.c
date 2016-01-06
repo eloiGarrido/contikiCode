@@ -9,13 +9,13 @@
 #include <stdio.h>
 #include "metric.h"
 
-// #include "tudLib/node_state.h"
 
 #define CHANNEL 135
 #define MY_TIMEOUT 1 * CLOCK_SECOND
 /*---------------------------------------------------------------------------*/
 PROCESS(my_first_app_process,"My_First_App");
-AUTOSTART_PROCESSES(&my_first_app_process);
+// PROCESS(energy_monitoring, "Energy_Monitoring_Process");
+AUTOSTART_PROCESSES(&my_first_app_process/*, &energy_monitoring*/);
 /*---------------------------------------------------------------------------*/
 struct ctimer c;
 
@@ -25,8 +25,10 @@ struct ctimer c;
 static void
 broadcast_recv(struct broadcast_conn *c, const linkaddr_t *from)
 {
-  printf("broadcast message received from %d.%d: '%s'\n",
-         from->u8[0], from->u8[1], (char *)packetbuf_dataptr());
+  // printf("broadcast message received from %d.%d: '%s'\n",
+         // from->u8[0], from->u8[1], (char *)packetbuf_dataptr());
+
+    //TODO Add packet to queue, update hop count and delay and process info.
 }
 static const struct broadcast_callbacks broadcast_call = {broadcast_recv};
 static struct broadcast_conn broadcast;
@@ -47,44 +49,52 @@ PROCESS_THREAD(my_first_app_process,ev,data)
 
     broadcast_open(&broadcast, 129, &broadcast_call);
     energytrace_start(); // Energy trace initializer
-    /* Delay 2-4 seconds */
+
     etimer_set(&pt_broadcast, CLOCK_SECOND * 4 + random_rand() % (CLOCK_SECOND * 4));
-    etimer_set(&pt_message, CLOCK_SECOND * 10 + random_rand() % (CLOCK_SECOND * 10));
-    etimer_set(&energy_info, CLOCK_SECOND * 6);
+    etimer_set(&pt_message, CLOCK_SECOND * 10 );
+    etimer_set(&energy_info, CLOCK_SECOND / 2 );
+
     while(1){
         PROCESS_WAIT_EVENT();
-        if (ev == PROCESS_EVENT_TIMER){
-            if(etimer_expired(&pt_broadcast)){
+        
+        if (ev == PROCESS_EVENT_TIMER)
+        {
+            if(etimer_expired(&pt_broadcast))
+            {
               // PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
-                if (node_state == NODE_ACTIVE){
+                if (node_state == NODE_ACTIVE)
+                {
                     packetbuf_copyfrom("Hello",6);
                     broadcast_send(&broadcast);
-                    printf("Braodcast message sent\n");
-                    etimer_reset(&pt_broadcast);
-               // etimer_set(&pt_broadcast, CLOCK_SECOND * 4 + random_rand() % (CLOCK_SECOND * 4));
                 }     
+                etimer_reset(&pt_broadcast);
             }
-            else if(etimer_expired(&pt_message)){
-            printf("---------------------Periodic message---------------------\n");
-            etimer_reset(&pt_message);
+            else if(etimer_expired(&pt_message))
+            {
+                printf("---------------------Periodic message---------------------\n");
+                etimer_reset(&pt_message);
             }
-            else if (etimer_expired(&energy_info)){
-                compute_node_state();
-                compute_node_duty_cycle();
-                compute_harvesting_rate();
-                etimer_reset(&energy_info);
-                printf("node_state: %d, node_duty_cycle %u, harvesting_rate: %u\n",get_node_state(), get_duty_cycle(),get_harvesting_rate() );
-            }
+            else if (etimer_expired(&energy_info))
+            {
 
+                printf("node_state: %d, remaining_energy: %lu, node_duty_cycle %d, harvesting_rate: %lu\n",node_state ,remaining_energy, node_duty_cycle, harvesting_rate );
+                etimer_reset(&energy_info);
+            }
+            else
+            {
+                printf("Inside ev == PROCESS_EVENT_TIMER, but non of the defined\n");
+            }
+        }
+        else if(ev == PROCESS_EVENT_MSG)
+        {
+            printf("Data: node_state = %s\n", data );
+
+        }
+        else
+        {
+            printf("WARNING: Not a defined EVENT\n" );
         }
     }
     /* Process End */
     PROCESS_END();            
 }
-
-
-/** Xin's Energy Trace 
-In your source file, you can use the variables: remaining_energy and node_state, which are defined in energytrace.h.
-To start and stop the tracer, use energytrace_start() and energytrace_stop() functions.
-When the tracer is running, it prints energy consumption per second.
-*/

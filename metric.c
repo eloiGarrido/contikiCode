@@ -44,19 +44,25 @@
 /* DEFINES */
 /*---------------------------------------------------------------------------*/
 /* VARIABLES AND CONSTANTS */
-uint8_t node_duty_cycle;
-node_energy_state_t node_energy_state;
+int node_duty_cycle;
+node_energy_state_t node_energy_state = NS_ZERO;
 uint16_t harvesting_rate = 0;
-inline node_energy_state_t energy_state(void){
-	if (remaining_energy > NS_ENERGY_HIGH) {
-		return NS_HIGH;
-	} else if (remaining_energy <= NS_ENERGY_HIGH && remaining_energy > NS_ENERGY_MID){
-		return NS_MID;
-	} else if (remaining_energy <= NS_ENERGY_MID && remaining_energy > NS_ENERGY_LOW){
-		return NS_LOW;
-	}
-	return NS_ZERO;
-}
+
+// inline node_energy_state_t energy_state(void){
+// 	// printf("remaining_energy: %lu\n",remaining_energy );
+// 	// printf("NS_ENERGY_HIGH: %lu\n",(uint32_t)NS_ENERGY_HIGH );
+// 	// if (remaining_energy > (uint32_t)NS_ENERGY_HIGH) {
+// 	// 	printf("high\n");
+// 	// 	return NS_HIGH;
+// 	// } else if (remaining_energy <= (uint32_t)NS_ENERGY_HIGH && remaining_energy > (uint32_t)NS_ENERGY_MID){
+// 	// 	printf("mid\n");
+// 	// 	return NS_MID;
+// 	// } else if (remaining_energy <= (uint32_t)NS_ENERGY_MID && remaining_energy > (uint32_t)NS_ENERGY_LOW){
+// 	// 	printf("low\n");
+// 	// 	return NS_LOW;
+// 	// }
+// 	// return NS_ZERO;
+// }
 
 /*---------------------------------------------------------------------------*/
 // PROCESS(metric_process, "Metric main process");
@@ -69,19 +75,15 @@ inline node_energy_state_t energy_state(void){
 /*---------------------------------------------------------------------------*/
 /* FUNCTIONS */
 void compute_node_duty_cycle(void){
-	switch(node_energy_state){
-		case NS_HIGH:
-			node_duty_cycle = DC_HIGH;
-			break;
-		case NS_MID:
-			node_duty_cycle = DC_MID;
-			break;
-		case NS_LOW:
-			node_duty_cycle = DC_LOW;
-			break;
-		default:
-			node_duty_cycle = 0;
-			break;
+
+	if(node_energy_state = NS_HIGH){
+		node_duty_cycle = DC_HIGH;
+	}else if (node_energy_state = NS_MID){
+		node_duty_cycle = DC_MID;
+	}else if (node_energy_state = NS_LOW){
+		node_duty_cycle = DC_LOW;
+	}else{
+		node_duty_cycle = DC_ZERO;	
 	}
 
 }
@@ -91,7 +93,25 @@ uint8_t get_duty_cycle(void){
 }
 
 void compute_node_state(void){
-	node_energy_state = energy_state();
+
+	if (remaining_energy > (uint32_t)NS_ENERGY_HIGH) {
+		// printf("high\n");
+		node_energy_state = NS_HIGH;
+	} else if (remaining_energy > (uint32_t)NS_ENERGY_MID){
+		// printf("mid\n");
+		node_energy_state = NS_MID;
+	} else if ( (uint32_t)remaining_energy > (uint32_t)NS_ENERGY_LOW){
+		// printf("low\n");
+		node_energy_state = NS_LOW;
+	} else {
+		// printf("zero, remaining_energy: %lu, NS_ENERGY_LOW %lu \n", remaining_energy, (uint32_t)NS_ENERGY_LOW);
+		node_energy_state = NS_ZERO;
+	}
+
+	
+
+
+	// node_energy_state = energy_state();
 }
 
 node_energy_state_t get_node_state(void){
@@ -104,7 +124,9 @@ void compute_harvesting_rate(void){
 	for (indx = 0; indx < 5; indx++){
 		acum += harvesting_rate_array[indx];
 	}
-	harvesting_rate = acum / 5;
+	if (acum < 5){ harvesting_rate = 0;}
+	else{harvesting_rate = acum / 5;}
+	
 }
 
 uint16_t get_harvesting_rate(void){
