@@ -8,7 +8,7 @@
 #include "../apps/energytrace/energytrace.h"
 #include <stdio.h>
 #include "metric.h"
-
+#include <string.h>
 
 #define CHANNEL 135
 #define MY_TIMEOUT 1 * CLOCK_SECOND
@@ -87,8 +87,15 @@ PROCESS_THREAD(my_first_app_process,ev,data)
         }
         else if(ev == PROCESS_EVENT_MSG)
         {
-            printf("Data: node_state = %s\n", data );
+        	if(strcmp(data,"ACTIVE") == 0){
+				printf("node_state = %s, Run Node Operations\n", data );
+				etimer_restart(&pt_broadcast);
+				//Normal node operation
+        	}else if(strcmp(data,"INACTIVE") == 0){
+            	printf("node_state = %s, Disable all scheduled wakeups\n", data );
+        		etimer_stop(&pt_broadcast);
 
+			}
         }
         else
         {
