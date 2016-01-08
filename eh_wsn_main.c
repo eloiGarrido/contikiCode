@@ -77,7 +77,7 @@ PROCESS_THREAD(my_first_app_process,ev,data)
             else if (etimer_expired(&energy_info))
             {
 
-                printf("node_state: %d, remaining_energy: %lu, node_duty_cycle %d, harvesting_rate: %lu\n",node_state ,remaining_energy, node_duty_cycle, harvesting_rate );
+                printf("node_energy_state: %d, remaining_energy: %lu, node_duty_cycle %d, harvesting_rate: %u\n",node_energy_state ,remaining_energy, node_duty_cycle, harvesting_rate );
                 etimer_reset(&energy_info);
             }
             else

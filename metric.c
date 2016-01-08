@@ -76,11 +76,11 @@ uint16_t harvesting_rate = 0;
 /* FUNCTIONS */
 void compute_node_duty_cycle(void){
 
-	if(node_energy_state = NS_HIGH){
+	if(node_energy_state == NS_HIGH){
 		node_duty_cycle = DC_HIGH;
-	}else if (node_energy_state = NS_MID){
+	}else if (node_energy_state == NS_MID){
 		node_duty_cycle = DC_MID;
-	}else if (node_energy_state = NS_LOW){
+	}else if (node_energy_state == NS_LOW){
 		node_duty_cycle = DC_LOW;
 	}else{
 		node_duty_cycle = DC_ZERO;	
@@ -104,6 +104,7 @@ void compute_node_state(void){
 		// printf("low\n");
 		node_energy_state = NS_LOW;
 	} else {
+		// printf("zero\n");
 		// printf("zero, remaining_energy: %lu, NS_ENERGY_LOW %lu \n", remaining_energy, (uint32_t)NS_ENERGY_LOW);
 		node_energy_state = NS_ZERO;
 	}
