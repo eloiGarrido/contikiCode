@@ -9,9 +9,11 @@
 #include <stdio.h>
 #include "metric.h"
 #include <string.h>
+#include "core/net/mac/mac.h"
 
 #define CHANNEL 135
 #define MY_TIMEOUT 1 * CLOCK_SECOND
+const struct mac_driver custommac_driver;
 /*---------------------------------------------------------------------------*/
 PROCESS(my_first_app_process,"My_First_App");
 // PROCESS(energy_monitoring, "Energy_Monitoring_Process");
@@ -25,8 +27,8 @@ struct ctimer c;
 static void
 broadcast_recv(struct broadcast_conn *c, const linkaddr_t *from)
 {
-  // printf("broadcast message received from %d.%d: '%s'\n",
-         // from->u8[0], from->u8[1], (char *)packetbuf_dataptr());
+  printf("broadcast message received from %d.%d: '%s'\n",
+         from->u8[0], from->u8[1], (char *)packetbuf_dataptr());
 
     //TODO Add packet to queue, update hop count and delay and process info.
 }
@@ -52,7 +54,9 @@ PROCESS_THREAD(my_first_app_process,ev,data)
 
     etimer_set(&pt_broadcast, CLOCK_SECOND * 4 + random_rand() % (CLOCK_SECOND * 4));
     etimer_set(&pt_message, CLOCK_SECOND * 10 );
-    etimer_set(&energy_info, CLOCK_SECOND / 2 );
+    etimer_set(&energy_info, CLOCK_SECOND * 2 );
+
+    custommac_driver.init();
 
     while(1){
         PROCESS_WAIT_EVENT();
@@ -64,8 +68,11 @@ PROCESS_THREAD(my_first_app_process,ev,data)
               // PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
                 if (node_state == NODE_ACTIVE)
                 {
+                    // printf("Broadcast\n");
                     packetbuf_copyfrom("Hello",6);
                     broadcast_send(&broadcast);
+                    // send_packet(&broadcast);
+                    // custommac_driver.send_probe();
                 }     
                 etimer_reset(&pt_broadcast);
             }
@@ -87,9 +94,10 @@ PROCESS_THREAD(my_first_app_process,ev,data)
         }
         else if(ev == PROCESS_EVENT_MSG)
         {
+            // custommac_driver.dutycycle();
         	if(strcmp(data,"ACTIVE") == 0){
 				printf("node_state = %s, Run Node Operations\n", data );
-				etimer_restart(&pt_broadcast);
+				etimer_reset(&pt_broadcast);
 				//Normal node operation
         	}else if(strcmp(data,"INACTIVE") == 0){
             	printf("node_state = %s, Disable all scheduled wakeups\n", data );
